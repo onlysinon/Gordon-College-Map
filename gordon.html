@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gordon College - Interactive 6-Story Campus Building Map & Directory</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gc: {
+              green: '#0a5c36',
+              'green-mid': '#1b7a4b',
+              'green-light': '#2d9d62',
+              'green-mint': '#f2f8f4',
+              gold: '#f5ab16',
+              'gold-bright': '#ffc72c',
+              'gold-dark': '#d48e06',
+              dark: '#0f1a14',
+              'dark-card': '#16261d',
+              'dark-border': '#22382b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 0.35; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .marker-pulse {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -30;
+      }
+    }
+    .route-animated {
+      stroke-dasharray: 6, 6;
+      animation: dash 1.2s linear infinite;
+    }
+  </style>
+</head>
+<body class="bg-gc-green-mint dark:bg-gc-dark text-gray-800 dark:text-gray-100 h-full flex flex-col overflow-hidden transition-colors duration-200">
+
+  <!-- TOP APP HEADER -->
+  <header class="bg-white dark:bg-gc-dark-card border-b border-gc-green/15 dark:border-gc-dark-border px-4 py-2.5 flex-none z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      
+      <!-- Brand & Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="resetViews()">
+        <div class="w-10 h-10 rounded-xl bg-gc-green flex items-center justify-center text-gc-gold shadow-md border border-gc-gold/30">
+          <i class="fa-solid fa-building-columns text-xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-black text-lg text-gc-green dark:text-white leading-tight tracking-tight">GORDON COLLEGE</h1>
+            <span class="bg-gc-gold/20 text-gc-gold-dark dark:text-gc-gold text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-gc-gold/40 tracking-wide uppercase">6-Story Building</span>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Interactive Floor Plan & Campus Directory</p>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="flex-1 max-w-md mx-2 relative">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gc-green/60 dark:text-gc-gold/80 text-sm"></i>
+          <input type="text" id="searchInput" placeholder="Search rooms, labs, offices (e.g. Registrar, Cashier, CCS Lab, Library)..." 
+            class="w-full pl-10 pr-10 py-2 bg-gc-green-mint dark:bg-gc-dark/80 border border-gc-green/20 dark:border-gc-dark-border focus:border-gc-green dark:focus:border-gc-gold rounded-xl text-sm focus:outline-none focus:bg-white dark:focus:bg-gc-dark-card transition-all dark:text-white placeholder-gray-400">
+          <button id="clearSearch" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </button>
+        </div>
+        <!-- Live Suggestions Dropdown -->
+        <div id="searchSuggestions" class="hidden absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-gc-dark-card border border-gc-green/20 dark:border-gc-dark-border rounded-xl shadow-xl max-h-72 overflow-y-auto z-50"></div>
+      </div>
+
+      <!-- View Switcher & Action Controls -->
+      <div class="flex items-center space-x-2">
+        
+        <!-- Design / Admin Edit Mode Toggle -->
+        <button id="adminModeBtn" onclick="toggleAdminMode()" class="px-3 py-1.5 rounded-xl border border-gc-gold/50 bg-gc-green-mint dark:bg-gc-dark text-gc-green dark:text-gc-gold hover:bg-gc-gold/20 text-xs font-extrabold flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-pen-to-square text-gc-gold"></i>
+          <span id="adminBtnText">Design Mode</span>
+        </button>
+
+        <!-- Desktop View Mode Buttons -->
+        <div class="hidden lg:flex bg-gc-green-mint dark:bg-gc-dark p-1 rounded-xl border border-gc-green/15 dark:border-gc-dark-border text-xs font-semibold">
+          <button id="viewSplitBtn" onclick="switchView('split')" class="px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 bg-gc-green text-white dark:bg-gc-gold dark:text-gc-dark shadow-sm">
+            <i class="fa-solid fa-columns"></i>
+            <span>Split View</span>
+          </button>
+          <button id="viewMapBtn" onclick="switchView('map')" class="px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 text-gray-600 dark:text-gray-300 hover:text-gc-green dark:hover:text-white">
+            <i class="fa-solid fa-map"></i>
+            <span>Floor Map</span>
+          </button>
+          <button id="viewListBtn" onclick="switchView('list')" class="px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 text-gray-600 dark:text-gray-300 hover:text-gc-green dark:hover:text-white">
+            <i class="fa-solid fa-list-ul"></i>
+            <span>Room Directory</span>
+          </button>
+        </div>
+
+        <!-- Wayfinding Quick Trigger -->
+        <button onclick="toggleWayfinder(true)" class="px-3 py-2 bg-gc-gold hover:bg-gc-gold-dark text-gc-dark font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-sm transition">
+          <i class="fa-solid fa-route text-sm"></i>
+          <span class="hidden md:inline">Directions</span>
+        </button>
+
+        <!-- Dark Mode Toggle -->
+        <button id="themeToggleBtn" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gc-green-mint dark:bg-gc-dark text-gc-green dark:text-gc-gold border border-gc-green/20 dark:border-gc-dark-border hover:bg-gc-green/10 dark:hover:bg-gc-dark-border transition">
+          <i class="fa-solid fa-moon text-sm dark:hidden"></i>
+          <i class="fa-solid fa-sun text-sm hidden dark:block"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ADMIN CUSTOMIZATION TOOLBAR (Visible when Design Mode is active) -->
+  <div id="adminToolbar" class="hidden bg-gc-gold/15 dark:bg-gc-dark border-b border-gc-gold/30 px-4 py-2 flex-none z-20">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div class="flex items-center space-x-2">
+        <span class="bg-gc-gold text-gc-dark px-2 py-0.5 rounded font-black text-[10px] uppercase tracking-wide">Design Mode Active</span>
+        <span class="text-gray-600 dark:text-gray-300 hidden sm:inline">Click any room on the map or directory to edit, or create custom rooms below:</span>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button onclick="openRoomEditModal(null)" class="px-3 py-1.5 bg-gc-green hover:bg-gc-green-mid text-white rounded-lg font-bold flex items-center space-x-1 shadow-sm">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>Add Room to Floor <span id="adminCurrentFloorBadge">1</span></span>
+        </button>
+        <button onclick="loadDefaultPresets()" class="px-2.5 py-1.5 bg-white dark:bg-gc-dark-card text-gc-green dark:text-gc-gold border border-gc-green/30 rounded-lg font-bold hover:bg-gc-green-mint">
+          <i class="fa-solid fa-rotate-left mr-1"></i> Load Presets
+        </button>
+        <button onclick="clearAllRooms()" class="px-2.5 py-1.5 bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300/50 rounded-lg font-bold hover:bg-rose-200">
+          <i class="fa-solid fa-trash mr-1"></i> Clear to Blank
+        </button>
+        <button onclick="exportJsonSchema()" class="px-2.5 py-1.5 bg-gc-gold text-gc-dark rounded-lg font-bold hover:bg-gc-gold-dark">
+          <i class="fa-solid fa-download mr-1"></i> Export JSON
+        </button>
+        <button onclick="openImportModal()" class="px-2.5 py-1.5 bg-white dark:bg-gc-dark-card text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gc-dark-border rounded-lg font-bold hover:bg-gray-50">
+          <i class="fa-solid fa-upload mr-1"></i> Import JSON
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK STUDENT SHORTCUT PILLS & CATEGORIES -->
+  <div class="bg-white dark:bg-gc-dark-card border-b border-gc-green/15 dark:border-gc-dark-border px-4 py-2 flex-none z-20">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2">
+      
+      <!-- Quick Student Action Shortcuts -->
+      <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs flex-none">
+        <span class="text-[11px] font-extrabold uppercase text-gc-green dark:text-gc-gold flex items-center mr-1">
+          <i class="fa-solid fa-bolt mr-1"></i> Quick Find:
+        </span>
+        <button onclick="quickSearchTag('Registrar')" class="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-semibold hover:bg-emerald-200 border border-emerald-300/50">
+          📍 Registrar (Fl 1)
+        </button>
+        <button onclick="quickSearchTag('Cashier')" class="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 font-semibold hover:bg-amber-200 border border-amber-300/50">
+          💵 Cashier (Fl 1)
+        </button>
+        <button onclick="quickSearchTag('Canteen')" class="px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 font-semibold hover:bg-rose-200 border border-rose-300/50">
+          🍱 Main Canteen (Fl 1)
+        </button>
+        <button onclick="quickSearchTag('Library')" class="px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 font-semibold hover:bg-blue-200 border border-blue-300/50">
+          📚 Library (Fl 5)
+        </button>
+        <button onclick="quickSearchTag('CCS')" class="px-2.5 py-1 rounded-full bg-gc-green/10 dark:bg-gc-green/40 text-gc-green dark:text-gc-gold font-semibold hover:bg-gc-green/20 border border-gc-green/30">
+          💻 CCS Labs (Fl 2)
+        </button>
+        <button onclick="quickSearchTag('Restroom')" class="px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 font-semibold hover:bg-purple-200 border border-purple-300/50">
+          🚻 Restrooms
+        </button>
+      </div>
+
+      <!-- Department Filter Pills -->
+      <div id="categoryPills" class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs">
+        <!-- Rendered by JS -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION BODY -->
+  <main class="flex-1 relative flex overflow-hidden">
+
+    <!-- LEFT PANEL: ROOM DIRECTORY LIST -->
+    <section id="listPanel" class="w-full md:w-5/12 lg:w-4/12 flex flex-col border-r border-gc-green/15 dark:border-gc-dark-border bg-white dark:bg-gc-dark-card z-10 transition-all duration-300">
+      
+      <!-- List Control Bar -->
+      <div class="px-4 py-2.5 bg-gc-green-mint dark:bg-gc-dark/60 border-b border-gc-green/15 dark:border-gc-dark-border flex items-center justify-between flex-none">
+        <div>
+          <span id="roomCount" class="font-bold text-gc-green dark:text-gc-gold text-sm">0 Rooms</span>
+          <span id="activeFilterLabel" class="text-xs text-gray-500 dark:text-gray-400 ml-1">Across Building</span>
+        </div>
+        <div class="flex items-center space-x-1.5 text-xs">
+          <label for="sortBy" class="text-gray-500 dark:text-gray-400 font-medium">Sort:</label>
+          <select id="sortBy" onchange="renderDirectoryList()" class="bg-white dark:bg-gc-dark border border-gc-green/20 dark:border-gc-dark-border rounded-lg px-2 py-1 text-xs font-semibold focus:outline-none dark:text-white">
+            <option value="floor">By Floor (1 → 6)</option>
+            <option value="name">Room Name (A-Z)</option>
+            <option value="category">Category</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Directory List Cards -->
+      <div id="directoryGrid" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+        <!-- Dynamic Cards -->
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: INTERACTIVE FLOOR MAP CANVAS & VERTICAL SELECTOR -->
+    <section id="mapPanel" class="w-full md:w-7/12 lg:w-8/12 flex-1 relative bg-slate-900 flex overflow-hidden">
+      
+      <!-- VERTICAL 6-FLOOR SELECTOR SIDEBAR -->
+      <div class="w-16 sm:w-20 bg-gc-green dark:bg-gc-dark-card border-r border-gc-gold/30 dark:border-gc-dark-border flex flex-col justify-between py-3 px-2 z-20 flex-none select-none shadow-xl">
+        <div class="text-center mb-1">
+          <span class="text-[10px] font-black uppercase text-gc-gold tracking-widest block">Floor</span>
+          <span class="text-[9px] text-white/70 block">Selector</span>
+        </div>
+
+        <!-- Floor Buttons Stack 6 -> 1 -->
+        <div id="verticalFloorStack" class="flex flex-col space-y-1.5 flex-1 justify-center">
+          <!-- Rendered by JS -->
+        </div>
+
+        <!-- Elevators & Stairs Info Badge -->
+        <div class="pt-2 text-center border-t border-white/10 dark:border-gc-dark-border text-[9px] text-gc-gold">
+          <i class="fa-solid fa-elevator block text-sm mb-0.5"></i>
+          <span>Elevators & Stairs</span>
+        </div>
+      </div>
+
+      <!-- SVG FLOOR PLAN CANVAS VIEWPORT -->
+      <div id="mapViewport" class="flex-1 h-full cursor-grab active:cursor-grabbing select-none relative overflow-hidden bg-slate-950">
+        
+        <!-- Floor Header Indicator -->
+        <div class="absolute top-4 left-4 z-20 bg-gc-green/90 dark:bg-gc-dark-card/90 backdrop-blur-md border border-gc-gold/40 px-4 py-2 rounded-2xl shadow-lg flex items-center space-x-3">
+          <div id="floorBadgeLarge" class="w-10 h-10 rounded-xl bg-gc-gold text-gc-dark font-black text-xl flex items-center justify-center shadow-md">
+            1F
+          </div>
+          <div>
+            <h2 id="floorTitleLarge" class="font-extrabold text-sm text-white dark:text-gc-gold">Ground Floor - Admin & Student Services</h2>
+            <p id="floorSubtitleLarge" class="text-[11px] text-emerald-200 dark:text-gray-300">Registrar, Cashier, Clinic, Main Canteen, Student Center</p>
+          </div>
+        </div>
+
+        <!-- SVG Map Container -->
+        <svg id="buildingFloorSvg" viewBox="0 0 1000 650" class="w-full h-full transition-transform duration-100 ease-out origin-center">
+          <defs>
+            <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="1"/>
+            </pattern>
+            <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+              <feDropShadow dx="2" dy="4" stdDeviation="4" flood-opacity="0.4" />
+            </filter>
+            <filter id="glowGold" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          <!-- Grid Background -->
+          <rect width="1000" height="650" fill="#090d16" />
+          <rect width="1000" height="650" fill="url(#gridPattern)" />
+
+          <!-- BUILDING OUTER WALL BOUNDARY -->
+          <rect x="80" y="60" width="840" height="530" rx="20" fill="#0f172a" stroke="#0a5c36" stroke-width="8" filter="url(#shadow)" />
+          
+          <!-- CENTRAL HALLWAY / CORRIDOR -->
+          <rect x="120" y="290" width="760" height="70" fill="#1e293b" stroke="#334155" stroke-width="2" rx="6" />
+          <text x="500" y="330" fill="#64748b" font-size="12" font-weight="bold" letter-spacing="4" text-anchor="middle">MAIN CORRIDOR HALLWAY</text>
+
+          <!-- ELEVATORS & STAIRWELLS FIXED ACROSS ALL FLOORS -->
+          <!-- Elevator Core Left -->
+          <g transform="translate(100, 295)" class="cursor-pointer" onclick="showNotification('Elevator A connects Floors 1 through 6.')">
+            <rect x="0" y="0" width="55" height="60" rx="6" fill="#0a5c36" stroke="#f5ab16" stroke-width="2" />
+            <text x="27" y="32" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">ELEV A</text>
+            <text x="27" y="46" fill="#ffc72c" font-size="8" text-anchor="middle">Floors 1-6</text>
+          </g>
+
+          <!-- Elevator Core Right -->
+          <g transform="translate(845, 295)" class="cursor-pointer" onclick="showNotification('Elevator B connects Floors 1 through 6.')">
+            <rect x="0" y="0" width="55" height="60" rx="6" fill="#0a5c36" stroke="#f5ab16" stroke-width="2" />
+            <text x="27" y="32" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">ELEV B</text>
+            <text x="27" y="46" fill="#ffc72c" font-size="8" text-anchor="middle">Floors 1-6</text>
+          </g>
+
+          <!-- Stairwell Left -->
+          <g transform="translate(100, 225)">
+            <rect x="0" y="0" width="55" height="55" rx="6" fill="#1e293b" stroke="#475569" stroke-width="2" />
+            <text x="27" y="32" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">STAIRS 1</text>
+          </g>
+
+          <!-- Stairwell Right -->
+          <g transform="translate(845, 225)">
+            <rect x="0" y="0" width="55" height="55" rx="6" fill="#1e293b" stroke="#475569" stroke-width="2" />
+            <text x="27" y="32" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">STAIRS 2</text>
+          </g>
+
+          <!-- WAYFINDING PATH ANIMATED SVG LINE -->
+          <g id="routePathGroup">
+            <path id="activeRoutePath" d="" fill="none" stroke="#ffc72c" stroke-width="6" stroke-linecap="round" class="route-animated" filter="url(#glowGold)"/>
+          </g>
+
+          <!-- DYNAMIC ROOM SHAPES LAYER -->
+          <g id="svgRoomShapes">
+            <!-- Rendered by JS per floor -->
+          </g>
+
+          <!-- DYNAMIC ROOM LABELS LAYER -->
+          <g id="svgRoomLabels">
+            <!-- Rendered by JS per floor -->
+          </g>
+
+        </svg>
+
+        <!-- MAP CANVAS FLOATING ZOOM CONTROLS -->
+        <div class="absolute bottom-5 right-5 flex flex-col space-y-2 z-20">
+          <button onclick="zoomMap(1.2)" class="w-10 h-10 bg-gc-green text-white rounded-xl shadow-lg border border-gc-gold/30 flex items-center justify-center hover:bg-gc-green-mid font-bold transition">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          <button onclick="zoomMap(0.8)" class="w-10 h-10 bg-gc-green text-white rounded-xl shadow-lg border border-gc-gold/30 flex items-center justify-center hover:bg-gc-green-mid font-bold transition">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+          <button onclick="resetMapTransform()" title="Reset View" class="w-10 h-10 bg-gc-green text-white rounded-xl shadow-lg border border-gc-gold/30 flex items-center justify-center hover:bg-gc-green-mid transition">
+            <i class="fa-solid fa-compress"></i>
+          </button>
+        </div>
+
+        <!-- ROUTE SUMMARY OVERLAY BAR -->
+        <div id="routeSummaryBar" class="hidden absolute top-4 right-4 left-24 sm:left-auto sm:max-w-md bg-white dark:bg-gc-dark-card p-4 rounded-2xl shadow-2xl border-2 border-gc-gold z-30">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-xl bg-gc-gold text-gc-dark flex items-center justify-center font-bold text-lg">
+                <i class="fa-solid fa-person-walking-arrow-right"></i>
+              </div>
+              <div>
+                <span id="routeTimeEst" class="font-extrabold text-gc-green dark:text-gc-gold text-sm block">Inter-Floor Navigation</span>
+                <p id="routeStepsText" class="text-xs text-gray-700 dark:text-gray-200 font-medium mt-0.5">Take Elevator A from Floor 1 to Floor 5</p>
+              </div>
+            </div>
+            <button onclick="clearWayfindingRoute()" class="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1">
+              <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MOBILE BOTTOM NAVIGATION -->
+  <nav class="sm:hidden bg-white dark:bg-gc-dark-card border-t border-gc-green/15 dark:border-gc-dark-border flex justify-around py-2 z-30 flex-none">
+    <button onclick="switchView('map')" id="mobNavMap" class="flex flex-col items-center text-xs text-gc-green dark:text-gc-gold font-bold">
+      <i class="fa-solid fa-map text-lg mb-0.5"></i>
+      <span>Floor Map</span>
+    </button>
+    <button onclick="switchView('list')" id="mobNavList" class="flex flex-col items-center text-xs text-gray-500 dark:text-gray-400 font-medium">
+      <i class="fa-solid fa-list-ul text-lg mb-0.5"></i>
+      <span>Directory</span>
+    </button>
+    <button onclick="toggleWayfinder(true)" class="flex flex-col items-center text-xs text-gray-500 dark:text-gray-400 font-medium">
+      <i class="fa-solid fa-route text-lg mb-0.5"></i>
+      <span>Directions</span>
+    </button>
+  </nav>
+
+  <!-- ROOM DETAIL SLIDE-OVER DRAWER (VIEW MODE) -->
+  <div id="detailDrawer" class="fixed inset-y-0 right-0 w-full sm:w-96 max-w-full bg-white dark:bg-gc-dark-card shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-l border-gc-green/20 dark:border-gc-dark-border">
+    <!-- Drawer Banner Header -->
+    <div class="relative h-44 bg-gc-green flex-none overflow-hidden">
+      <img id="drawerImage" src="https://placehold.co/800x400/0a5c36/ffffff?text=Gordon+College+Facility" alt="Room Header" class="w-full h-full object-cover opacity-80">
+      <div class="absolute inset-0 bg-gradient-to-t from-gc-dark via-transparent to-transparent"></div>
+      
+      <!-- Close Button -->
+      <button onclick="closeDetailDrawer()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/80 transition backdrop-blur-sm">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- Category & Floor Badges -->
+      <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+        <span id="drawerCategoryBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-gc-gold text-gc-dark shadow-md">
+          Academic
+        </span>
+        <span id="drawerFloorBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-white/90 text-gc-green dark:bg-gc-dark dark:text-gc-gold border border-gc-gold/50">
+          Floor 1
+        </span>
+      </div>
+    </div>
+
+    <!-- Drawer Scrollable Content -->
+    <div class="flex-1 overflow-y-auto p-5 space-y-4">
+      <div>
+        <h2 id="drawerTitle" class="text-xl font-black text-gc-green dark:text-white leading-tight">Room Name</h2>
+        <p id="drawerCode" class="text-xs font-mono font-bold text-gc-gold-dark dark:text-gc-gold mt-0.5">GC-101 • Ground Floor</p>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex space-x-2">
+        <button id="drawerDirectionsBtn" class="flex-1 bg-gc-gold hover:bg-gc-gold-dark text-gc-dark py-2.5 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-2 shadow-md transition">
+          <i class="fa-solid fa-route"></i>
+          <span>Directions Here</span>
+        </button>
+        <button id="drawerLocateBtn" class="bg-gc-green dark:bg-gc-dark hover:bg-gc-green-mid text-white px-3 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition border border-gc-gold/30">
+          <i class="fa-solid fa-crosshairs"></i>
+          <span>Show Floor</span>
+        </button>
+      </div>
+
+      <!-- Operating Info Box -->
+      <div class="bg-gc-green-mint dark:bg-gc-dark/70 p-3.5 rounded-xl space-y-2 border border-gc-green/15 dark:border-gc-dark-border text-xs">
+        <div class="flex items-center justify-between">
+          <span class="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
+            <i class="fa-regular fa-clock text-gc-green dark:text-gc-gold"></i>
+            <span class="font-medium">Hours:</span>
+          </span>
+          <span id="drawerHours" class="font-bold text-gc-green dark:text-white">8:00 AM - 5:00 PM</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
+            <i class="fa-solid fa-users text-gc-green dark:text-gc-gold"></i>
+            <span class="font-medium">Capacity:</span>
+          </span>
+          <span id="drawerCapacity" class="font-bold text-gray-800 dark:text-gray-200">45 Students</span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <h3 class="text-xs font-bold uppercase tracking-wider text-gc-green dark:text-gc-gold mb-1">Facility Description</h3>
+        <p id="drawerDescription" class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+          Detailed room information, department usage, and services provided.
+        </p>
+      </div>
+
+      <!-- Equipment & Amenities Tag List -->
+      <div>
+        <h3 class="text-xs font-bold uppercase tracking-wider text-gc-green dark:text-gc-gold mb-2">Amenities & Equipment</h3>
+        <div id="drawerAmenities" class="flex flex-wrap gap-1.5">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTER-FLOOR WAYFINDER ROUTE MODAL -->
+  <div id="wayfinderModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-gc-dark-card rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gc-gold/40 relative">
+      
+      <button onclick="toggleWayfinder(false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-gc-gold text-gc-dark flex items-center justify-center font-black text-lg">
+          <i class="fa-solid fa-route"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-gc-green dark:text-white">Inter-Floor Wayfinder</h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Get step-by-step directions between any floors</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Origin -->
+        <div>
+          <label class="block text-xs font-bold text-gc-green dark:text-gc-gold mb-1 flex items-center space-x-1">
+            <i class="fa-solid fa-circle-dot text-xs text-emerald-500"></i>
+            <span>Starting Location</span>
+          </label>
+          <select id="routeStartSelect" class="w-full bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 dark:border-gc-dark-border rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-800 dark:text-white focus:ring-2 focus:ring-gc-gold outline-none">
+            <!-- Dynamically Populated -->
+          </select>
+        </div>
+
+        <!-- Destination -->
+        <div>
+          <label class="block text-xs font-bold text-gc-green dark:text-gc-gold mb-1 flex items-center space-x-1">
+            <i class="fa-solid fa-location-dot text-xs text-rose-500"></i>
+            <span>Destination Room</span>
+          </label>
+          <select id="routeEndSelect" class="w-full bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 dark:border-gc-dark-border rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-800 dark:text-white focus:ring-2 focus:ring-gc-gold outline-none">
+            <!-- Dynamically Populated -->
+          </select>
+        </div>
+
+        <!-- Transport Preference -->
+        <div class="flex items-center justify-between p-3 bg-gc-green-mint dark:bg-gc-dark/50 rounded-xl border border-gc-green/10">
+          <span class="text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+            <i class="fa-solid fa-elevator text-gc-green dark:text-gc-gold"></i> Preferred Transport:
+          </span>
+          <select id="transportPref" class="bg-white dark:bg-gc-dark border border-gc-green/20 text-xs font-bold rounded-lg px-2 py-1 text-gc-green dark:text-gc-gold">
+            <option value="Elevator">Main Elevator A/B</option>
+            <option value="Stairs">Stairwell 1/2</option>
+          </select>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-2 flex space-x-3">
+          <button onclick="calculateAndDrawRoute()" class="flex-1 bg-gc-green hover:bg-gc-green-mid text-white font-black py-3 rounded-xl text-xs flex items-center justify-center space-x-2 shadow-lg transition border border-gc-gold/40">
+            <i class="fa-solid fa-compass"></i>
+            <span>Calculate Navigation</span>
+          </button>
+          <button onclick="toggleWayfinder(false)" class="bg-gray-100 dark:bg-gc-dark text-gray-600 dark:text-gray-300 px-4 py-3 rounded-xl text-xs font-bold">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ADMIN ROOM ADD / EDIT MODAL -->
+  <div id="roomEditModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-gc-dark-card rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gc-gold/40 relative max-h-[90vh] overflow-y-auto">
+      
+      <button onclick="closeRoomEditModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-gc-green text-gc-gold flex items-center justify-center font-black text-lg">
+          <i class="fa-solid fa-pen-ruler"></i>
+        </div>
+        <div>
+          <h3 id="modalEditTitle" class="text-lg font-black text-gc-green dark:text-white">Add New Custom Room</h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Configure room attributes and floor placement coordinates</p>
+        </div>
+      </div>
+
+      <form id="roomForm" onsubmit="handleSaveRoom(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="editRoomId">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Room Code / ID *</label>
+            <input type="text" id="editCode" placeholder="e.g. GC-207" required class="w-full p-2.5 bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 rounded-xl dark:text-white font-mono font-bold focus:outline-none focus:border-gc-gold">
+          </div>
+          <div>
+            <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Floor Level (1-6) *</label>
+            <select id="editFloor" required class="w-full p-2.5 bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 rounded-xl dark:text-white font-bold">
+              <option value="1">1F - Ground Floor Admin</option>
+              <option value="2">2F - CCS Computer Studies</option>
+              <option value="3">3F - CEAS Education/Sciences</option>
+              <option value="4">4F - CBA Business/Accountancy</option>
+              <option value="5">5F - CAHS Nursing / Library</option>
+              <option value="6">6F - Executive / Auditorium</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Full Room Name *</label>
+          <input type="text" id="editName" placeholder="e.g. Advanced Cybersecurity & Forensics Lab" required class="w-full p-2.5 bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 rounded-xl dark:text-white font-bold focus:outline-none focus:border-gc-gold">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Short Map Label</label>
+            <input type="text" id="editShortName" placeholder="e.g. Cyber Lab" class="w-full p-2.5 bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 rounded-xl dark:text-white font-bold">
+          </div>
+          <div>
+            <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Category</label>
+            <select id="editCategory" class="w-full p-2.5 bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 rounded-xl dark:text-white font-bold">
+              <option value="Admin">Admin & Services</option>
+              <option value="CCS">CCS (IT/CS)</option>
+              <option value="CEAS">CEAS (Arts/Sci)</option>
+              <option value="CBA">CBA (Business)</option>
+              <option value="CAHS">CAHS (Nursing)</option>
+              <option value="Library">Library & AVR</option>
+              <option value="Food/Services">Dining & Student</option>
+              <option value="Events">Gym & Auditorium</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Canvas Blueprint Coordinates -->
+        <div class="p-3 bg-gc-green-mint dark:bg-gc-dark/80 rounded-xl border border-gc-green/20 space-y-2">
+          <span class="font-extrabold text-gc-green dark:text-gc-gold block text-[11px]">SVG Blueprint Rectangle Coordinates</span>
+          <div class="grid grid-cols-4 gap-2">
+            <div>
+              <label class="block text-[10px] text-gray-500">X Pos (120-800)</label>
+              <input type="number" id="editX" value="200" required class="w-full p-2 bg-white dark:bg-gc-dark-card border border-gc-green/20 rounded-lg text-center font-mono dark:text-white">
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500">Y Pos (100-450)</label>
+              <input type="number" id="editY" value="100" required class="w-full p-2 bg-white dark:bg-gc-dark-card border border-gc-green/20 rounded-lg text-center font-mono dark:text-white">
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500">Width (80-400)</label>
+              <input type="number" id="editWidth" value="160" required class="w-full p-2 bg-white dark:bg-gc-dark-card border border-gc-green/20 rounded-lg text-center font-mono dark:text-white">
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500">Height (60-200)</label>
+              <input type="number" id="editHeight" value="140" required class="w-full p-2 bg-white dark:bg-gc-dark-card border border-gc-green/20 rounded-lg text-center font-mono dark:text-white">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Highlight Color</label>
+            <input type="color" id="editColor" value="#0a5c36" class="w-full h-9 p-1 bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 rounded-xl cursor-pointer">
+          </div>
+          <div>
+            <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Capacity</label>
+            <input type="text" id="editCapacity" placeholder="e.g. 45 Students" class="w-full p-2.5 bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 rounded-xl dark:text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Description / Notes</label>
+          <textarea id="editDescription" rows="2" placeholder="Facility notes, hardware specs, department usage..." class="w-full p-2.5 bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 rounded-xl dark:text-white"></textarea>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="pt-2 flex space-x-2">
+          <button type="submit" class="flex-1 bg-gc-green hover:bg-gc-green-mid text-white font-black py-2.5 rounded-xl text-xs shadow-md border border-gc-gold/30">
+            Save Room Configuration
+          </button>
+          <button type="button" id="btnDeleteRoom" onclick="handleDeleteRoom()" class="hidden bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs">
+            Delete
+          </button>
+          <button type="button" onclick="closeRoomEditModal()" class="bg-gray-200 dark:bg-gc-dark text-gray-700 dark:text-gray-300 font-bold px-4 py-2.5 rounded-xl text-xs">
+            Cancel
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- IMPORT JSON MODAL -->
+  <div id="importModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-gc-dark-card rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gc-gold/40 relative">
+      <button onclick="closeImportModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <h3 class="text-lg font-black text-gc-green dark:text-white mb-2">Import Floor Plan JSON</h3>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Paste custom room schema JSON data below to update all 6 floors:</p>
+
+      <textarea id="importJsonText" rows="8" placeholder="Paste JSON array here..." class="w-full p-3 bg-gc-green-mint dark:bg-gc-dark border border-gc-green/20 rounded-xl text-xs font-mono dark:text-white focus:outline-none focus:border-gc-gold mb-4"></textarea>
+
+      <div class="flex space-x-2">
+        <button onclick="handleImportJson()" class="flex-1 bg-gc-gold hover:bg-gc-gold-dark text-gc-dark font-black py-2.5 rounded-xl text-xs shadow-md">
+          Load Schema Data
+        </button>
+        <button onclick="closeImportModal()" class="bg-gray-200 dark:bg-gc-dark text-gray-700 dark:text-gray-300 font-bold px-4 py-2.5 rounded-xl text-xs">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION FLOATING CONTAINER -->
+  <div id="toastNotification" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gc-dark text-white px-5 py-3 rounded-2xl shadow-2xl border border-gc-gold/50 z-50 hidden transition-all transform duration-200 flex items-center space-x-3 text-xs">
+    <i class="fa-solid fa-circle-info text-gc-gold text-base"></i>
+    <span id="toastMsg">Notification Message</span>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    /* ==========================================================================
+       GORDON COLLEGE 6-FLOOR DATA MODEL & DEFAULT PRESETS
+       ========================================================================== */
+    const FLOORS_INFO = {
+      1: { name: "Ground Floor - Admin & Student Services", code: "1F", subtitle: "Registrar, Cashier, Clinic, Main Canteen, Student Center" },
+      2: { name: "Floor 2 - College of Computer Studies (CCS)", code: "2F", subtitle: "CCS Dean's Office, CISCO Lab, Mac Lab, Software Engineering Labs" },
+      3: { name: "Floor 3 - College of Education, Arts & Sciences (CEAS)", code: "3F", subtitle: "CEAS Dean's Office, Chemistry, Biology & Physics Science Labs, Speech Lab" },
+      4: { name: "Floor 4 - College of Business & Accountancy (CBA)", code: "4F", subtitle: "CBA Dean's Office, Business Sim Lab, Tourism & Mock Hotel Suite" },
+      5: { name: "Floor 5 - College of Allied Health Studies (CAHS) & Library", code: "5F", subtitle: "CAHS Nursing Skills Lab, Main College Library & E-Learning Commons" },
+      6: { name: "Floor 6 - Executive Suite & Event Facilities", code: "6F", subtitle: "President's Office, Grand Auditorium, Multipurpose Gym, Sky Garden" }
+    };
+
+    const DEFAULT_PRESET_ROOMS = [
+      // --- FLOOR 1: GROUND FLOOR ADMIN & SERVICES ---
+      {
+        id: "room-101",
+        floor: 1,
+        code: "GC-101",
+        name: "Main Entrance Gate & Security Center",
+        shortName: "Main Entrance",
+        category: "Admin",
+        color: "#0a5c36",
+        svgPos: { x: 500, y: 530 },
+        shape: { x: 420, y: 460, width: 160, height: 100 },
+        hours: "6:00 AM - 9:00 PM",
+        capacity: "N/A",
+        image: "https://placehold.co/800x400/0a5c36/ffffff?text=Main+Entrance+Gate",
+        description: "Primary student and visitor security checkpoint, RFID tap entry, and general campus info desk.",
+        amenities: ["RFID Scanner", "Visitor Kiosk", "Security Guard Post", "Help Desk"]
+      },
+      {
+        id: "room-102",
+        floor: 1,
+        code: "GC-102",
+        name: "Office of the Registrar",
+        shortName: "Registrar",
+        category: "Admin",
+        color: "#1b7a4b",
+        svgPos: { x: 220, y: 170 },
+        shape: { x: 140, y: 100, width: 160, height: 140 },
+        hours: "8:00 AM - 5:00 PM",
+        capacity: "30 Staff / Visitors",
+        image: "https://placehold.co/800x400/1b7a4b/ffffff?text=Office+of+the+Registrar",
+        description: "Official student academic records, transcript requests, enrolment processing, and graduation evaluations.",
+        amenities: ["Window Queuing System", "Document Verification", "Student Portal Desk"]
+      },
+      {
+        id: "room-103",
+        floor: 1,
+        code: "GC-103",
+        name: "Cashier & Finance Office",
+        shortName: "Cashier",
+        category: "Admin",
+        color: "#f5ab16",
+        svgPos: { x: 400, y: 170 },
+        shape: { x: 320, y: 100, width: 160, height: 140 },
+        hours: "8:00 AM - 4:30 PM",
+        capacity: "4 Payment Counters",
+        image: "https://placehold.co/800x400/d48e06/ffffff?text=Cashier+%26+Finance",
+        description: "Tuition fee payment windows, statement of accounts, assessment validation, and official receipts issuance.",
+        amenities: ["Payment Counters", "Digital Payment Kiosk", "Queue Display"]
+      },
+      {
+        id: "room-104",
+        floor: 1,
+        code: "GC-104",
+        name: "Student Guidance & Counseling Office",
+        shortName: "Guidance Office",
+        category: "Admin",
+        color: "#2d9d62",
+        svgPos: { x: 600, y: 170 },
+        shape: { x: 520, y: 100, width: 160, height: 140 },
+        hours: "8:00 AM - 5:00 PM",
+        capacity: "15 Persons",
+        image: "https://placehold.co/800x400/2d9d62/ffffff?text=Guidance+Office",
+        description: "Student counseling services, entrance examination testing, mental health consultations, and career planning.",
+        amenities: ["Private Testing Rooms", "Counseling Booths", "Quiet Area"]
+      },
+      {
+        id: "room-105",
+        floor: 1,
+        code: "GC-105",
+        name: "University Health Clinic & Dental Room",
+        shortName: "Medical Clinic",
+        category: "Food/Services",
+        color: "#e11d48",
+        svgPos: { x: 780, y: 170 },
+        shape: { x: 700, y: 100, width: 160, height: 140 },
+        hours: "7:30 AM - 6:00 PM",
+        capacity: "6 Recovery Beds",
+        image: "https://placehold.co/800x400/be123c/ffffff?text=Health+Clinic",
+        description: "On-campus medical first aid, registered physician consultation, dental checkups, and emergency emergency care.",
+        amenities: ["First Aid", "Recovery Beds", "Doctor on Duty", "Dental Chair"]
+      },
+      {
+        id: "room-106",
+        floor: 1,
+        code: "GC-106",
+        name: "Gordon College Main Canteen",
+        shortName: "Main Canteen",
+        category: "Food/Services",
+        color: "#ea580c",
+        svgPos: { x: 230, y: 460 },
+        shape: { x: 140, y: 400, width: 180, height: 130 },
+        hours: "7:00 AM - 6:00 PM",
+        capacity: "250 Seating Capacity",
+        image: "https://placehold.co/800x400/c2410c/ffffff?text=Main+Canteen",
+        description: "Central dining facility providing affordable warm meals, snacks, refreshments, and outdoor courtyard seating.",
+        amenities: ["Hot Meals", "Beverages", "Spacious Seating", "Wash Basins"]
+      },
+      {
+        id: "room-107",
+        floor: 1,
+        code: "GC-107",
+        name: "Student Center & SSC Activity Hub",
+        shortName: "Student Hub",
+        category: "Food/Services",
+        color: "#0284c7",
+        svgPos: { x: 770, y: 460 },
+        shape: { x: 680, y: 400, width: 180, height: 130 },
+        hours: "7:00 AM - 7:00 PM",
+        capacity: "100 Students",
+        image: "https://placehold.co/800x400/0369a1/ffffff?text=Student+Center",
+        description: "Hub for student organization meetings, campus publication office, relaxation lounge, and event signups.",
+        amenities: ["Lounge Sofas", "Charging Outlets", "Org Bulletin Boards"]
+      },
+
+      // --- FLOOR 2: COLLEGE OF COMPUTER STUDIES (CCS) ---
+      {
+        id: "room-201",
+        floor: 2,
+        code: "GC-201",
+        name: "CCS Dean's Office & Faculty Center",
+        shortName: "CCS Dean's Office",
+        category: "CCS",
+        color: "#0a5c36",
+        svgPos: { x: 220, y: 170 },
+        shape: { x: 140, y: 100, width: 160, height: 140 },
+        hours: "8:00 AM - 5:00 PM",
+        capacity: "20 Faculty Staff",
+        image: "https://placehold.co/800x400/0a5c36/ffffff?text=CCS+Dean's+Office",
+        description: "Administrative headquarters for Computer Science, Information Technology, and Entertainment Computing programs.",
+        amenities: ["Dean Consultation", "Faculty Consultation Desk", "Dept Notice Board"]
+      },
+      {
+        id: "room-202",
+        floor: 2,
+        code: "GC-202",
+        name: "CISCO Networking & Hardware Lab",
+        shortName: "CISCO Lab",
+        category: "CCS",
+        color: "#16a34a",
+        svgPos: { x: 400, y: 170 },
+        shape: { x: 320, y: 100, width: 160, height: 140 },
+        hours: "7:30 AM - 8:30 PM",
+        capacity: "45 PC Workstations",
+        image: "https://placehold.co/800x400/15803d/ffffff?text=CISCO+Networking+Lab",
+        description: "Specialized lab equipped with CISCO routers, switches, patch panels, and server racks for hands-on network administration.",
+        amenities: ["CISCO Routers", "Gigabit Ethernet Workstations", "Air Conditioned", "High-Speed Fiber"]
+      },
+      {
+        id: "room-203",
+        floor: 2,
+        code: "GC-203",
+        name: "Mac Multimedia & Graphics Studio",
+        shortName: "Mac Lab",
+        category: "CCS",
+        color: "#0284c7",
+        svgPos: { x: 600, y: 170 },
+        shape: { x: 520, y: 100, width: 160, height: 140 },
+        hours: "8:00 AM - 7:00 PM",
+        capacity: "40 Apple Mac Workstations",
+        image: "https://placehold.co/800x400/0369a1/ffffff?text=Mac+Multimedia+Lab",
+        description: "High-performance Mac computer lab dedicated to digital illustration, 3D modeling, video production, and iOS app development.",
+        amenities: ["Apple iMacs", "Drawing Tablets", "Adobe Creative Cloud", "4K Monitors"]
+      },
+      {
+        id: "room-204",
+        floor: 2,
+        code: "GC-204",
+        name: "Software Engineering Lab 1",
+        shortName: "SoftEng Lab 1",
+        category: "CCS",
+        color: "#1b7a4b",
+        svgPos: { x: 780, y: 170 },
+        shape: { x: 700, y: 100, width: 160, height: 140 },
+        hours: "7:30 AM - 8:30 PM",
+        capacity: "50 Workstations",
+        image: "https://placehold.co/800x400/1b7a4b/ffffff?text=Software+Lab+1",
+        description: "Programming lab for Java, Python, Web Development, C++, and database management systems.",
+        amenities: ["Dual Monitor PCs", "IDE Tools Installed", "Projector Display"]
+      },
+      {
+        id: "room-205",
+        floor: 2,
+        code: "GC-205",
+        name: "IT Innovation & AI Research Center",
+        shortName: "IT Research Center",
+        category: "CCS",
+        color: "#f5ab16",
+        svgPos: { x: 230, y: 460 },
+        shape: { x: 140, y: 400, width: 180, height: 130 },
+        hours: "8:00 AM - 6:00 PM",
+        capacity: "30 Researchers",
+        image: "https://placehold.co/800x400/d48e06/ffffff?text=IT+Research+Lab",
+        description: "Capstone project lab and research space for Artificial Intelligence, Internet of Things (IoT), and Mobile Computing.",
+        amenities: ["GPU Compute Workstations", "3D Printer", "IoT Microcontrollers"]
+      },
+      {
+        id: "room-206",
+        floor: 2,
+        code: "GC-206",
+        name: "CCS Lecture Room 201-205 Wing",
+        shortName: "Lecture Rooms 201-205",
+        category: "CCS",
+        color: "#475569",
+        svgPos: { x: 600, y: 460 },
+        shape: { x: 420, y: 400, width: 440, height: 130 },
+        hours: "7:00 AM - 9:00 PM",
+        capacity: "5 Lecture Classrooms (40 seats each)",
+        image: "https://placehold.co/800x400/334155/ffffff?text=CCS+Lecture+Wing",
+        description: "Smart lecture classrooms equipped with ceiling projectors, whiteboards, and internet connectivity for IT lectures.",
+        amenities: ["Smart TV / Projectors", "Air Conditioned", "Whiteboards"]
+      },
+
+      // --- FLOOR 5: COLLEGE OF ALLIED HEALTH STUDIES & LIBRARY ---
+      {
+        id: "room-504",
+        floor: 5,
+        code: "GC-504",
+        name: "Gordon College Main Library & E-Learning Commons",
+        shortName: "Main Library",
+        category: "Library",
+        color: "#0a5c36",
+        svgPos: { x: 400, y: 460 },
+        shape: { x: 140, y: 400, width: 420, height: 130 },
+        hours: "7:00 AM - 8:00 PM",
+        capacity: "300 Readers",
+        image: "https://placehold.co/800x400/0a5c36/ffffff?text=Main+College+Library",
+        description: "The primary learning resource hub featuring book archives, digital research terminals, quiet study carrels, and e-journals.",
+        amenities: ["OPAC Terminals", "Quiet Study Carrels", "High-Speed WiFi", "Printers/Scanners"]
+      }
+    ];
+
+    const CATEGORIES = [
+      { id: "All", label: "All Facilities", icon: "fa-border-all" },
+      { id: "Admin", label: "Admin & Services", icon: "fa-user-shield" },
+      { id: "CCS", label: "CCS (IT/CS)", icon: "fa-laptop-code" },
+      { id: "CEAS", label: "CEAS (Arts/Sci)", icon: "fa-flask" },
+      { id: "CBA", label: "CBA (Business)", icon: "fa-chart-line" },
+      { id: "CAHS", label: "CAHS (Nursing)", icon: "fa-user-nurse" },
+      { id: "Library", label: "Library & AVR", icon: "fa-book-open" },
+      { id: "Food/Services", label: "Dining & Student", icon: "fa-utensils" },
+      { id: "Events", label: "Gym & Auditorium", icon: "fa-trophy" }
+    ];
+
+    /* Dynamic Rooms Working Copy */
+    let roomsData = JSON.parse(JSON.stringify(DEFAULT_PRESET_ROOMS));
+
+    /* ==========================================================================
+       APP STATE
+       ========================================================================== */
+    let currentActiveFloor = 1;
+    let currentCategory = "All";
+    let currentViewMode = "split";
+    let selectedRoomId = null;
+    let searchQuery = "";
+    let isAdminMode = false;
+
+    // SVG Map Pan/Zoom state
+    let mapScale = 1;
+    let mapPanX = 0;
+    let mapPanY = 0;
+    let isPanning = false;
+    let startPanX = 0;
+    let startPanY = 0;
+
+    /* ==========================================================================
+       INIT & EVENT BINDINGS
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      renderFloorStack();
+      renderCategoryPills();
+      renderDirectoryList();
+      renderFloorMapSVG();
+      populateWayfinderOptions();
+      setupSearchEvents();
+      setupPanZoomEvents();
+
+      if (window.innerWidth < 768) {
+        switchView('map');
+      }
+    });
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    function showNotification(msg) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    /* ==========================================================================
+       ADMIN / DESIGN EDIT MODE
+       ========================================================================== */
+    function toggleAdminMode() {
+      isAdminMode = !isAdminMode;
+      const adminToolbar = document.getElementById('adminToolbar');
+      const btnText = document.getElementById('adminBtnText');
+      const btn = document.getElementById('adminModeBtn');
+
+      if (isAdminMode) {
+        adminToolbar.classList.remove('hidden');
+        btnText.textContent = "Exit Design Mode";
+        btn.className = "px-3 py-1.5 rounded-xl bg-gc-gold text-gc-dark hover:bg-gc-gold-dark text-xs font-black flex items-center space-x-1.5 shadow-md border border-gc-gold transition";
+        showNotification("Design Mode active! Click any room or use '+ Add Room' to customize.");
+      } else {
+        adminToolbar.classList.add('hidden');
+        btnText.textContent = "Design Mode";
+        btn.className = "px-3 py-1.5 rounded-xl border border-gc-gold/50 bg-gc-green-mint dark:bg-gc-dark text-gc-green dark:text-gc-gold hover:bg-gc-gold/20 text-xs font-extrabold flex items-center space-x-1.5 transition";
+        showNotification("Switched back to View Mode.");
+      }
+
+      renderFloorMapSVG();
+      renderDirectoryList();
+    }
+
+    function loadDefaultPresets() {
+      roomsData = JSON.parse(JSON.stringify(DEFAULT_PRESET_ROOMS));
+      renderFloorMapSVG();
+      renderDirectoryList();
+      populateWayfinderOptions();
+      showNotification("Loaded default Gordon College room presets across 6 floors.");
+    }
+
+    function clearAllRooms() {
+      roomsData = [];
+      renderFloorMapSVG();
+      renderDirectoryList();
+      populateWayfinderOptions();
+      showNotification("Cleared map to blank slate across all 6 floors.");
+    }
+
+    function exportJsonSchema() {
+      const jsonStr = JSON.stringify(roomsData, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gordon_college_map_schema.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showNotification("Exported room schema JSON file.");
+    }
+
+    function openImportModal() {
+      document.getElementById('importModal').classList.remove('hidden');
+    }
+
+    function closeImportModal() {
+      document.getElementById('importModal').classList.add('hidden');
+    }
+
+    function handleImportJson() {
+      const text = document.getElementById('importJsonText').value.trim();
+      if (!text) return;
+
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          roomsData = parsed;
+          renderFloorMapSVG();
+          renderDirectoryList();
+          populateWayfinderOptions();
+          closeImportModal();
+          showNotification("Successfully imported floor plan room schema!");
+        } else {
+          showNotification("Invalid JSON format. Expected an array of room objects.");
+        }
+      } catch (err) {
+        showNotification("JSON parsing error: " + err.message);
+      }
+    }
+
+    /* ==========================================================================
+       ROOM EDIT / ADD MODAL HANDLERS
+       ========================================================================== */
+    function openRoomEditModal(roomId = null) {
+      const modal = document.getElementById('roomEditModal');
+      const form = document.getElementById('roomForm');
+      const title = document.getElementById('modalEditTitle');
+      const deleteBtn = document.getElementById('btnDeleteRoom');
+
+      form.reset();
+      document.getElementById('editFloor').value = currentActiveFloor;
+
+      if (roomId) {
+        const rm = roomsData.find(r => r.id === roomId);
+        if (rm) {
+          title.textContent = `Edit Room (${rm.code})`;
+          document.getElementById('editRoomId').value = rm.id;
+          document.getElementById('editCode').value = rm.code;
+          document.getElementById('editFloor').value = rm.floor;
+          document.getElementById('editName').value = rm.name;
+          document.getElementById('editShortName').value = rm.shortName || '';
+          document.getElementById('editCategory').value = rm.category;
+          document.getElementById('editX').value = rm.shape.x;
+          document.getElementById('editY').value = rm.shape.y;
+          document.getElementById('editWidth').value = rm.shape.width;
+          document.getElementById('editHeight').value = rm.shape.height;
+          document.getElementById('editColor').value = rm.color || '#0a5c36';
+          document.getElementById('editCapacity').value = rm.capacity || '';
+          document.getElementById('editDescription').value = rm.description || '';
+          deleteBtn.classList.remove('hidden');
+        }
+      } else {
+        title.textContent = `Add New Room to Floor ${currentActiveFloor}`;
+        document.getElementById('editRoomId').value = '';
+        document.getElementById('editCode').value = `GC-${currentActiveFloor}0${roomsData.filter(r => r.floor === currentActiveFloor).length + 1}`;
+        document.getElementById('editX').value = 140 + (roomsData.filter(r => r.floor === currentActiveFloor).length * 100) % 600;
+        document.getElementById('editY').value = 100;
+        deleteBtn.classList.add('hidden');
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeRoomEditModal() {
+      document.getElementById('roomEditModal').classList.add('hidden');
+    }
+
+    function handleSaveRoom(e) {
+      e.preventDefault();
+      const id = document.getElementById('editRoomId').value;
+      const code = document.getElementById('editCode').value.trim();
+      const floor = parseInt(document.getElementById('editFloor').value, 10);
+      const name = document.getElementById('editName').value.trim();
+      const shortName = document.getElementById('editShortName').value.trim() || code;
+      const category = document.getElementById('editCategory').value;
+      const x = parseInt(document.getElementById('editX').value, 10);
+      const y = parseInt(document.getElementById('editY').value, 10);
+      const width = parseInt(document.getElementById('editWidth').value, 10);
+      const height = parseInt(document.getElementById('editHeight').value, 10);
+      const color = document.getElementById('editColor').value;
+      const capacity = document.getElementById('editCapacity').value.trim();
+      const description = document.getElementById('editDescription').value.trim();
+
+      const newRoom = {
+        id: id || `room-${Date.now()}`,
+        floor,
+        code,
+        name,
+        shortName,
+        category,
+        color,
+        svgPos: { x: x + width / 2, y: y + height / 2 },
+        shape: { x, y, width, height },
+        hours: "8:00 AM - 5:00 PM",
+        capacity: capacity || "45 Students",
+        image: `https://placehold.co/800x400/0a5c36/ffffff?text=${encodeURIComponent(shortName)}`,
+        description: description || "Custom Gordon College facility.",
+        amenities: ["Air Conditioned", "Wi-Fi"]
+      };
+
+      if (id) {
+        const idx = roomsData.findIndex(r => r.id === id);
+        if (idx !== -1) roomsData[idx] = newRoom;
+      } else {
+        roomsData.push(newRoom);
+      }
+
+      closeRoomEditModal();
+      selectFloor(floor);
+      renderDirectoryList();
+      populateWayfinderOptions();
+      showNotification(`Saved room ${code} on Floor ${floor}.`);
+    }
+
+    function handleDeleteRoom() {
+      const id = document.getElementById('editRoomId').value;
+      if (!id) return;
+      roomsData = roomsData.filter(r => r.id !== id);
+      closeRoomEditModal();
+      renderFloorMapSVG();
+      renderDirectoryList();
+      populateWayfinderOptions();
+      showNotification("Room deleted.");
+    }
+
+    /* ==========================================================================
+       VERTICAL FLOOR SELECTOR RENDERER
+       ========================================================================== */
+    function renderFloorStack() {
+      const container = document.getElementById('verticalFloorStack');
+      let html = '';
+
+      for (let f = 6; f >= 1; f--) {
+        const isSelected = currentActiveFloor === f;
+        const activeClass = isSelected 
+          ? "bg-gc-gold text-gc-dark font-black shadow-lg border-2 border-white scale-105" 
+          : "bg-gc-green-mid/60 text-white hover:bg-gc-green-light font-bold opacity-80 hover:opacity-100 border border-white/20";
+        
+        let deptLabel = "";
+        if (f === 1) deptLabel = "Admin";
+        else if (f === 2) deptLabel = "CCS";
+        else if (f === 3) deptLabel = "CEAS";
+        else if (f === 4) deptLabel = "CBA";
+        else if (f === 5) deptLabel = "CAHS/Lib";
+        else if (f === 6) deptLabel = "Exec/Events";
+
+        html += `
+          <button onclick="selectFloor(${f})" class="w-full py-2.5 px-1 rounded-xl transition-all duration-200 flex flex-col items-center justify-center ${activeClass}">
+            <span class="text-sm font-black tracking-tight leading-none">${f}F</span>
+            <span class="text-[9px] truncate max-w-full font-semibold uppercase mt-0.5 opacity-90">${deptLabel}</span>
+          </button>
+        `;
+      }
+
+      container.innerHTML = html;
+      updateFloorHeaderLabels();
+    }
+
+    function selectFloor(floorNum) {
+      currentActiveFloor = floorNum;
+      document.getElementById('adminCurrentFloorBadge').textContent = floorNum;
+      renderFloorStack();
+      renderFloorMapSVG();
+      renderDirectoryList();
+      resetMapTransform();
+    }
+
+    function updateFloorHeaderLabels() {
+      const info = FLOORS_INFO[currentActiveFloor];
+      document.getElementById('floorBadgeLarge').textContent = info.code;
+      document.getElementById('floorTitleLarge').textContent = info.name;
+      document.getElementById('floorSubtitleLarge').textContent = info.subtitle;
+    }
+
+    /* ==========================================================================
+       CATEGORY FILTERS & SEARCH
+       ========================================================================== */
+    function renderCategoryPills() {
+      const container = document.getElementById('categoryPills');
+      container.innerHTML = CATEGORIES.map(cat => {
+        const isActive = currentCategory === cat.id;
+        const activeClass = isActive 
+          ? "bg-gc-green dark:bg-gc-gold text-white dark:text-gc-dark font-bold shadow-sm" 
+          : "bg-gc-green-mint dark:bg-gc-dark/80 text-gray-700 dark:text-gray-300 hover:bg-gc-green/10 border border-gc-green/15 font-medium";
+        
+        return `
+          <button onclick="filterCategory('${cat.id}')" class="px-3 py-1 rounded-xl whitespace-nowrap transition-all duration-150 flex items-center space-x-1.5 ${activeClass}">
+            <i class="fa-solid ${cat.icon} text-xs"></i>
+            <span>${cat.label}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function filterCategory(catId) {
+      currentCategory = catId;
+      renderCategoryPills();
+      renderDirectoryList();
+      renderFloorMapSVG();
+    }
+
+    function quickSearchTag(tag) {
+      document.getElementById('searchInput').value = tag;
+      searchQuery = tag;
+      document.getElementById('clearSearch').classList.remove('hidden');
+      renderDirectoryList();
+      renderFloorMapSVG();
+    }
+
+    /* ==========================================================================
+       VIEW MODE SWITCHER
+       ========================================================================== */
+    function switchView(mode) {
+      currentViewMode = mode;
+      const listPanel = document.getElementById('listPanel');
+      const mapPanel = document.getElementById('mapPanel');
+
+      const btnSplit = document.getElementById('viewSplitBtn');
+      const btnMap = document.getElementById('viewMapBtn');
+      const btnList = document.getElementById('viewListBtn');
+
+      const activeClass = "bg-gc-green text-white dark:bg-gc-gold dark:text-gc-dark shadow-sm font-bold";
+      const inactiveClass = "text-gray-600 dark:text-gray-300 hover:text-gc-green dark:hover:text-white font-medium";
+
+      [btnSplit, btnMap, btnList].forEach(btn => {
+        if (btn) btn.className = `px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 ${inactiveClass}`;
+      });
+
+      if (mode === 'split') {
+        listPanel.classList.remove('hidden', 'w-full');
+        listPanel.classList.add('md:w-5/12', 'lg:w-4/12');
+        mapPanel.classList.remove('hidden');
+        if (btnSplit) btnSplit.className = `px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 ${activeClass}`;
+      } else if (mode === 'map') {
+        listPanel.classList.add('hidden');
+        mapPanel.classList.remove('hidden');
+        if (btnMap) btnMap.className = `px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 ${activeClass}`;
+      } else if (mode === 'list') {
+        listPanel.classList.remove('hidden', 'md:w-5/12', 'lg:w-4/12');
+        listPanel.classList.add('w-full');
+        mapPanel.classList.add('hidden');
+        if (btnList) btnList.className = `px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 ${activeClass}`;
+      }
+    }
+
+    function resetViews() {
+      currentCategory = "All";
+      searchQuery = "";
+      document.getElementById('searchInput').value = "";
+      document.getElementById('clearSearch').classList.add('hidden');
+      renderCategoryPills();
+      renderDirectoryList();
+      renderFloorMapSVG();
+      clearWayfindingRoute();
+      resetMapTransform();
+    }
+
+    /* ==========================================================================
+       DIRECTORY LIST RENDERER
+       ========================================================================== */
+    function getFilteredRooms() {
+      return roomsData.filter(rm => {
+        const matchesCat = currentCategory === "All" || rm.category === currentCategory;
+        const q = searchQuery.toLowerCase();
+        const matchesSearch = !q || 
+          rm.name.toLowerCase().includes(q) ||
+          rm.shortName.toLowerCase().includes(q) ||
+          rm.code.toLowerCase().includes(q) ||
+          rm.category.toLowerCase().includes(q) ||
+          (rm.amenities && rm.amenities.some(a => a.toLowerCase().includes(q)));
+
+        return matchesCat && matchesSearch;
+      });
+    }
+
+    function renderDirectoryList() {
+      const grid = document.getElementById('directoryGrid');
+      const filtered = getFilteredRooms();
+      const sortBy = document.getElementById('sortBy').value;
+
+      filtered.sort((a, b) => {
+        if (sortBy === 'floor') return a.floor - b.floor;
+        if (sortBy === 'name') return a.name.localeCompare(b.name);
+        if (sortBy === 'category') return a.category.localeCompare(b.category);
+        return 0;
+      });
+
+      document.getElementById('roomCount').textContent = `${filtered.length} Room${filtered.length !== 1 ? 's' : ''}`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="text-center py-12 px-4">
+            <div class="w-12 h-12 rounded-full bg-gc-green/10 dark:bg-gc-dark/80 text-gc-green dark:text-gc-gold flex items-center justify-center mx-auto mb-3">
+              <i class="fa-solid fa-square-plus text-xl"></i>
+            </div>
+            <p class="font-bold text-gray-800 dark:text-gray-200 text-sm">No rooms configured on this floor map</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable "Design Mode" in the header to add your custom rooms.</p>
+            <button onclick="openRoomEditModal(null)" class="mt-4 px-3.5 py-2 bg-gc-green text-white dark:bg-gc-gold dark:text-gc-dark rounded-xl text-xs font-bold shadow transition">
+              + Add First Room to Floor ${currentActiveFloor}
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(rm => {
+        const isSelected = selectedRoomId === rm.id;
+        const borderClass = isSelected 
+          ? 'border-2 border-gc-gold shadow-md bg-gc-gold/5 dark:bg-gc-gold/10' 
+          : 'border border-gc-green/15 dark:border-gc-dark-border hover:border-gc-green dark:hover:border-gc-gold/50';
+
+        return `
+          <div onclick="handleRoomClick('${rm.id}')" class="bg-white dark:bg-gc-dark-card rounded-xl p-3.5 ${borderClass} transition duration-150 cursor-pointer group relative">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold flex-none shadow-sm" style="background-color: ${rm.color}">
+                  <i class="fa-solid ${getCategoryIcon(rm.category)} text-xs"></i>
+                </div>
+                <div>
+                  <h3 class="font-extrabold text-xs text-gray-900 dark:text-white group-hover:text-gc-green dark:group-hover:text-gc-gold transition-colors leading-snug">
+                    ${rm.name}
+                  </h3>
+                  <div class="flex items-center space-x-2 mt-0.5">
+                    <span class="text-[10px] font-mono font-bold text-gc-gold-dark dark:text-gc-gold">${rm.code}</span>
+                    <span class="text-gray-300 dark:text-gray-600">•</span>
+                    <span class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Floor ${rm.floor}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Floor Badge & Admin Quick Actions -->
+              <div class="flex items-center space-x-1">
+                ${isAdminMode ? `
+                  <button onclick="event.stopPropagation(); openRoomEditModal('${rm.id}')" class="w-7 h-7 bg-gc-gold text-gc-dark rounded-lg flex items-center justify-center font-bold text-xs hover:bg-gc-gold-dark" title="Edit Room">
+                    <i class="fa-solid fa-pen text-[10px]"></i>
+                  </button>
+                ` : ''}
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-gc-green-mint dark:bg-gc-dark text-gc-green dark:text-gc-gold border border-gc-green/20">
+                  ${rm.floor}F
+                </span>
+              </div>
+            </div>
+
+            <!-- Card Bottom Bar -->
+            <div class="mt-2.5 pt-2 border-t border-gray-100 dark:border-gc-dark-border flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
+              <span class="truncate max-w-[200px]">${(rm.amenities && rm.amenities[0]) || rm.category}</span>
+              <button onclick="event.stopPropagation(); locateOnFloorMap('${rm.id}')" class="text-gc-green dark:text-gc-gold font-bold text-xs flex items-center space-x-1">
+                <i class="fa-solid fa-crosshairs"></i>
+                <span>View Floor</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getCategoryIcon(cat) {
+      const found = CATEGORIES.find(c => c.id === cat);
+      return found ? found.icon : 'fa-door-closed';
+    }
+
+    /* ==========================================================================
+       SVG FLOOR PLAN CANVAS RENDERER
+       ========================================================================== */
+    function renderFloorMapSVG() {
+      const shapesGroup = document.getElementById('svgRoomShapes');
+      const labelsGroup = document.getElementById('svgRoomLabels');
+
+      const floorRooms = roomsData.filter(r => r.floor === currentActiveFloor);
+
+      let shapesHtml = '';
+      let labelsHtml = '';
+
+      floorRooms.forEach(rm => {
+        const matchesCat = currentCategory === "All" || rm.category === currentCategory;
+        const q = searchQuery.toLowerCase();
+        const matchesSearch = !q || rm.name.toLowerCase().includes(q) || rm.code.toLowerCase().includes(q);
+
+        const isVisible = matchesCat && matchesSearch;
+        const opacity = isVisible ? '1' : '0.2';
+        const isSelected = selectedRoomId === rm.id;
+
+        const shp = rm.shape;
+        const strokeColor = isAdminMode ? '#f5ab16' : (isSelected ? '#ffc72c' : '#0a5c36');
+        const strokeWidth = isSelected ? '4' : (isAdminMode ? '3' : '2');
+
+        // Room Rectangle Shape
+        shapesHtml += `
+          <g onclick="handleRoomClick('${rm.id}')" class="cursor-pointer transition-opacity duration-200" opacity="${opacity}">
+            <rect x="${shp.x}" y="${shp.y}" width="${shp.width}" height="${shp.height}" rx="10" 
+              fill="${rm.color}" fill-opacity="${isSelected ? '0.95' : '0.6'}" 
+              stroke="${strokeColor}" stroke-width="${strokeWidth}" 
+              class="hover:fill-opacity-90 transition-all duration-150" />
+            
+            <!-- Interior Door Indicator Line -->
+            <line x1="${shp.x + shp.width/2 - 15}" y1="${shp.y < 300 ? shp.y + shp.height : shp.y}" 
+                  x2="${shp.x + shp.width/2 + 15}" y2="${shp.y < 300 ? shp.y + shp.height : shp.y}" 
+                  stroke="#ffc72c" stroke-width="4" stroke-linecap="round" />
+          </g>
+        `;
+
+        // Room Labels & Icons
+        if (isVisible) {
+          const centerX = shp.x + shp.width / 2;
+          const centerY = shp.y + shp.height / 2;
+
+          labelsHtml += `
+            <g onclick="handleRoomClick('${rm.id}')" class="cursor-pointer pointer-events-none">
+              ${isSelected ? `<circle cx="${centerX}" cy="${centerY}" r="30" fill="#ffc72c" opacity="0.3" class="marker-pulse" />` : ''}
+
+              <!-- Code Label -->
+              <rect x="${centerX - 40}" y="${centerY - 16}" width="80" height="18" rx="5" fill="#090d16" fill-opacity="0.85" stroke="${isSelected ? '#ffc72c' : '#334155'}" />
+              <text x="${centerX}" y="${centerY - 4}" fill="#ffffff" font-size="10" font-weight="extrabold" text-anchor="middle" font-family="Inter, sans-serif">
+                ${rm.code}
+              </text>
+
+              <!-- Short Name Label -->
+              <text x="${centerX}" y="${centerY + 12}" fill="#ffc72c" font-size="9" font-weight="bold" text-anchor="middle" font-family="Inter, sans-serif">
+                ${rm.shortName || rm.code}
+              </text>
+            </g>
+          `;
+        }
+      });
+
+      shapesGroup.innerHTML = shapesHtml;
+      labelsGroup.innerHTML = labelsHtml;
+    }
+
+    function handleRoomClick(id) {
+      if (isAdminMode) {
+        openRoomEditModal(id);
+      } else {
+        selectRoom(id, true);
+      }
+    }
+
+    /* ==========================================================================
+       ROOM SELECTION & DRAWER LOGIC
+       ========================================================================== */
+    function selectRoom(id, openDrawer = true) {
+      selectedRoomId = id;
+      const rm = roomsData.find(r => r.id === id);
+      if (!rm) return;
+
+      if (rm.floor !== currentActiveFloor) {
+        selectFloor(rm.floor);
+      } else {
+        renderFloorMapSVG();
+        renderDirectoryList();
+      }
+
+      if (openDrawer) {
+        populateDetailDrawer(rm);
+        openDetailDrawer();
+      }
+    }
+
+    function locateOnFloorMap(id) {
+      selectRoom(id, true);
+      if (currentViewMode === 'list') {
+        switchView('split');
+      }
+    }
+
+    function populateDetailDrawer(rm) {
+      document.getElementById('drawerImage').src = rm.image || `https://placehold.co/800x400/0a5c36/ffffff?text=${encodeURIComponent(rm.shortName)}`;
+      document.getElementById('drawerTitle').textContent = rm.name;
+      document.getElementById('drawerCode').textContent = `${rm.code} • Floor ${rm.floor}`;
+      document.getElementById('drawerCategoryBadge').textContent = rm.category;
+      document.getElementById('drawerCategoryBadge').style.backgroundColor = rm.color;
+      document.getElementById('drawerFloorBadge').textContent = `Floor ${rm.floor}`;
+
+      document.getElementById('drawerHours').textContent = rm.hours || "8:00 AM - 5:00 PM";
+      document.getElementById('drawerCapacity').textContent = rm.capacity || "45 Students";
+      document.getElementById('drawerDescription').textContent = rm.description || "Gordon College campus facility.";
+
+      document.getElementById('drawerDirectionsBtn').onclick = () => {
+        closeDetailDrawer();
+        openWayfinderTo(rm.id);
+      };
+
+      document.getElementById('drawerLocateBtn').onclick = () => {
+        selectFloor(rm.floor);
+      };
+
+      const container = document.getElementById('drawerAmenities');
+      const items = rm.amenities && rm.amenities.length > 0 ? rm.amenities : ["Standard Classroom", "Air Conditioned"];
+      container.innerHTML = items.map(a => `
+        <span class="px-2.5 py-1 bg-gc-green-mint dark:bg-gc-dark/90 text-gc-green dark:text-gc-gold rounded-lg text-xs font-bold border border-gc-green/15 flex items-center space-x-1">
+          <i class="fa-solid fa-check text-[10px]"></i>
+          <span>${a}</span>
+        </span>
+      `).join('');
+    }
+
+    function openDetailDrawer() {
+      document.getElementById('detailDrawer').classList.remove('translate-x-full');
+    }
+
+    function closeDetailDrawer() {
+      document.getElementById('detailDrawer').classList.add('translate-x-full');
+    }
+
+    /* ==========================================================================
+       INTER-FLOOR WAYFINDING & ROUTE CALCULATION
+       ========================================================================== */
+    function populateWayfinderOptions() {
+      const startSelect = document.getElementById('routeStartSelect');
+      const endSelect = document.getElementById('routeEndSelect');
+
+      const optionsHtml = roomsData.map(r => `
+        <option value="${r.id}">[${r.floor}F] ${r.name} (${r.code})</option>
+      `).join('');
+
+      startSelect.innerHTML = `<option value="START_ENTRANCE">📍 Floor 1 - Main Entrance Gate</option>` + optionsHtml;
+      endSelect.innerHTML = optionsHtml;
+      if (roomsData.length > 1) {
+        endSelect.value = roomsData[roomsData.length - 1].id;
+      }
+    }
+
+    function toggleWayfinder(show) {
+      const modal = document.getElementById('wayfinderModal');
+      if (show) modal.classList.remove('hidden');
+      else modal.classList.add('hidden');
+    }
+
+    function openWayfinderTo(destId) {
+      document.getElementById('routeEndSelect').value = destId;
+      toggleWayfinder(true);
+    }
+
+    function calculateAndDrawRoute() {
+      const startId = document.getElementById('routeStartSelect').value;
+      const endId = document.getElementById('routeEndSelect').value;
+      const transportPref = document.getElementById('transportPref').value;
+
+      if (startId === endId) {
+        showNotification("Please select different start and destination rooms.");
+        return;
+      }
+
+      let startRoom = startId === "START_ENTRANCE" ? (roomsData[0] || { floor: 1, name: "Main Gate" }) : roomsData.find(r => r.id === startId);
+      let endRoom = roomsData.find(r => r.id === endId);
+
+      if (!startRoom || !endRoom) return;
+
+      selectFloor(endRoom.floor);
+
+      const transportX = 127;
+      const transportY = 325;
+
+      const targetX = endRoom.svgPos ? endRoom.svgPos.x : (endRoom.shape.x + endRoom.shape.width/2);
+      const targetY = endRoom.svgPos ? endRoom.svgPos.y : (endRoom.shape.y + endRoom.shape.height/2);
+
+      let pathD = `M ${transportX} ${transportY} L ${targetX} ${transportY} L ${targetX} ${targetY}`;
+      document.getElementById('activeRoutePath').setAttribute('d', pathD);
+
+      let routeMsg = "";
+      if (startRoom.floor === endRoom.floor) {
+        routeMsg = `Walk down Corridor on Floor ${endRoom.floor} to ${endRoom.name} (${endRoom.code}).`;
+      } else {
+        routeMsg = `Take ${transportPref} A from Floor ${startRoom.floor} to Floor ${endRoom.floor} → Walk down Corridor to ${endRoom.name}.`;
+      }
+
+      document.getElementById('routeStepsText').textContent = routeMsg;
+      document.getElementById('routeSummaryBar').classList.remove('hidden');
+
+      toggleWayfinder(false);
+
+      if (currentViewMode === 'list') {
+        switchView('split');
+      }
+    }
+
+    function clearWayfindingRoute() {
+      document.getElementById('activeRoutePath').setAttribute('d', '');
+      document.getElementById('routeSummaryBar').classList.add('hidden');
+    }
+
+    /* ==========================================================================
+       MAP TRANSFORM (PAN & ZOOM) CONTROLS
+       ========================================================================== */
+    function applyMapTransform() {
+      const svg = document.getElementById('buildingFloorSvg');
+      svg.style.transform = `translate(${mapPanX}px, ${mapPanY}px) scale(${mapScale})`;
+    }
+
+    function zoomMap(factor) {
+      mapScale = Math.min(Math.max(0.6, mapScale * factor), 2.8);
+      applyMapTransform();
+    }
+
+    function resetMapTransform() {
+      mapScale = 1;
+      mapPanX = 0;
+      mapPanY = 0;
+      applyMapTransform();
+    }
+
+    function setupPanZoomEvents() {
+      const viewport = document.getElementById('mapViewport');
+
+      viewport.addEventListener('mousedown', (e) => {
+        isPanning = true;
+        startPanX = e.clientX - mapPanX;
+        startPanY = e.clientY - mapPanY;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        mapPanX = e.clientX - startPanX;
+        mapPanY = e.clientY - startPanY;
+        applyMapTransform();
+      });
+
+      window.addEventListener('mouseup', () => {
+        isPanning = false;
+      });
+
+      viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        zoomMap(zoomFactor);
+      }, { passive: false });
+    }
+
+    /* ==========================================================================
+       SEARCH & AUTOCOMPLETE
+       ========================================================================== */
+    function setupSearchEvents() {
+      const input = document.getElementById('searchInput');
+      const clearBtn = document.getElementById('clearSearch');
+      const suggestions = document.getElementById('searchSuggestions');
+
+      input.addEventListener('input', (e) => {
+        searchQuery = e.target.value.trim();
+        if (searchQuery.length > 0) {
+          clearBtn.classList.remove('hidden');
+          showSearchSuggestions(searchQuery);
+        } else {
+          clearBtn.classList.add('hidden');
+          suggestions.classList.add('hidden');
+        }
+
+        renderDirectoryList();
+        renderFloorMapSVG();
+      });
+
+      clearBtn.addEventListener('click', () => {
+        input.value = "";
+        searchQuery = "";
+        clearBtn.classList.add('hidden');
+        suggestions.classList.add('hidden');
+        renderDirectoryList();
+        renderFloorMapSVG();
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+          suggestions.classList.add('hidden');
+        }
+      });
+    }
+
+    function showSearchSuggestions(q) {
+      const suggestions = document.getElementById('searchSuggestions');
+      const matches = roomsData.filter(rm => 
+        rm.name.toLowerCase().includes(q.toLowerCase()) ||
+        rm.shortName.toLowerCase().includes(q.toLowerCase()) ||
+        rm.code.toLowerCase().includes(q.toLowerCase()) ||
+        rm.category.toLowerCase().includes(q.toLowerCase())
+      ).slice(0, 5);
+
+      if (matches.length === 0) {
+        suggestions.classList.add('hidden');
+        return;
+      }
+
+      suggestions.innerHTML = matches.map(rm => `
+        <div onclick="selectRoom('${rm.id}', true); document.getElementById('searchSuggestions').classList.add('hidden');" 
+          class="p-3 hover:bg-gc-green-mint dark:hover:bg-gc-dark/80 cursor-pointer border-b border-gc-green/10 dark:border-gc-dark-border last:border-0 flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold" style="background-color: ${rm.color}">
+              <i class="fa-solid ${getCategoryIcon(rm.category)}"></i>
+            </div>
+            <div>
+              <div class="font-extrabold text-xs text-gray-900 dark:text-white">${rm.name}</div>
+              <div class="text-[10px] text-gc-gold-dark dark:text-gc-gold font-mono">${rm.code} • Floor ${rm.floor}</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-black px-2 py-0.5 rounded bg-gc-green text-white dark:bg-gc-gold dark:text-gc-dark">
+            ${rm.floor}F
+          </span>
+        </div>
+      `).join('');
+
+      suggestions.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

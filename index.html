@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gordon College</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gc: {
+              green: '#0a5c36',
+              'green-dark': '#063d23',
+              'green-light': '#14804d',
+              gold: '#f5ab16',
+              'gold-hover': '#d9940d',
+              slate: '#0f172a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- External CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 h-full flex flex-col overflow-hidden transition-colors duration-200">
+
+  <!-- TOP APP HEADER -->
+  <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex-none z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      
+      <!-- Brand & Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer" id="brandLogo">
+        <div class="w-10 h-10 rounded-xl bg-gc-green text-gc-gold flex items-center justify-center shadow-md shadow-gc-green/20 border border-gc-gold/30">
+          <i class="fa-solid fa-building-columns text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-lg text-slate-900 dark:text-white leading-tight tracking-tight">Gordon College</h1>
+            <span class="bg-gc-gold/20 text-yellow-800 dark:text-gc-gold text-[10px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase border border-gc-gold/30">6 Floors</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Interactive Floor Plan & Directory</p>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="flex-1 max-w-md mx-2 relative">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input type="text" id="searchInput" placeholder="Search rooms, labs, offices, stairwells..." 
+            class="w-full pl-10 pr-10 py-2 bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-gc-green dark:focus:border-gc-gold rounded-xl text-sm focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-all dark:text-white placeholder-slate-400">
+          <button id="clearSearch" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </button>
+        </div>
+        <!-- Live Search Dropdown Suggestions -->
+        <div id="searchSuggestions" class="hidden absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-72 overflow-y-auto z-50"></div>
+      </div>
+
+      <!-- Header Controls & Design Toggle -->
+      <div class="flex items-center space-x-2">
+        <!-- Design / Admin Edit Mode Toggle -->
+        <button id="toggleEditModeBtn" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-pen-ruler text-gc-green dark:text-gc-gold"></i>
+          <span>Edit Mode</span>
+          <span id="editBadge" class="hidden ml-1 px-1.5 py-0.2 bg-gc-gold text-slate-900 text-[10px] font-bold rounded">ON</span>
+        </button>
+
+        <!-- View Segmented Buttons (Desktop) -->
+        <div class="hidden md:flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+          <button id="viewSplitBtn" class="px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 bg-white dark:bg-slate-900 text-gc-green dark:text-gc-gold shadow-sm">
+            <i class="fa-solid fa-columns"></i>
+            <span>Split</span>
+          </button>
+          <button id="viewMapBtn" class="px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900">
+            <i class="fa-solid fa-map"></i>
+            <span>Blueprint</span>
+          </button>
+          <button id="viewListBtn" class="px-3 py-1.5 rounded-lg transition-all duration-150 flex items-center space-x-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900">
+            <i class="fa-solid fa-list-ul"></i>
+            <span>List</span>
+          </button>
+        </div>
+
+        <!-- Wayfinding Quick Trigger -->
+        <button id="openWayfinderBtn" class="px-3 py-2 bg-gc-green hover:bg-gc-green-dark text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition">
+          <i class="fa-solid fa-route text-gc-gold"></i>
+          <span class="hidden sm:inline">Directions</span>
+        </button>
+
+        <!-- Dark Mode Toggle -->
+        <button id="themeToggleBtn" title="Toggle Dark/Light Mode" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+          <i class="fa-solid fa-moon text-sm dark:hidden"></i>
+          <i class="fa-solid fa-sun text-sm hidden dark:block text-gc-gold"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ADMIN / DESIGN EDIT TOOLBAR (Toggled via Edit Mode) -->
+  <div id="adminToolbar" class="hidden bg-slate-900 text-white border-b border-slate-800 px-4 py-2 z-20 transition-all">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div class="flex items-center space-x-3">
+        <span class="font-bold text-gc-gold uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders"></i> Design Builder Active
+        </span>
+        <span class="text-slate-400">Click any room rectangle on the canvas or directory to customize layout</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button id="addNewRoomBtn" class="px-2.5 py-1 bg-gc-green hover:bg-gc-green-light text-white font-semibold rounded-lg flex items-center space-x-1">
+          <i class="fa-solid fa-plus"></i>
+          <span>Add New Room</span>
+        </button>
+        <button id="loadPresetBtn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-lg flex items-center space-x-1 border border-slate-700">
+          <i class="fa-solid fa-wand-magic-sparkles text-gc-gold"></i>
+          <span>Load Preset</span>
+        </button>
+        <button id="clearAllRoomsBtn" class="px-2.5 py-1 bg-slate-800 hover:bg-rose-900/50 text-rose-300 font-semibold rounded-lg flex items-center space-x-1 border border-slate-700">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>Clear Floor</span>
+        </button>
+        <button id="openSchemaJsonBtn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-gc-gold font-semibold rounded-lg flex items-center space-x-1 border border-slate-700">
+          <i class="fa-solid fa-file-code"></i>
+          <span>Export/Import JSON</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY FILTER STRIP -->
+  <div class="bg-white dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 py-2 flex-none z-20 backdrop-blur-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div id="categoryPills" class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-0.5 w-full text-xs">
+        <!-- Category buttons generated dynamically by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="flex-1 relative flex overflow-hidden">
+
+    <!-- LEFT SIDEBAR: VERTICAL FLOOR SELECTOR & DIRECTORY LIST PANEL -->
+    <section id="listPanel" class="w-full md:w-1/2 lg:w-5/12 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-10 transition-all duration-300">
+      
+      <!-- Vertical Floor Level Selector Strip -->
+      <div class="p-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-2 flex-none">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Select Building Level:</span>
+          <span id="currentFloorBadge" class="text-xs font-bold text-gc-green dark:text-gc-gold">Floor 1 Selected</span>
+        </div>
+        <div id="floorSelectorButtons" class="grid grid-cols-6 gap-1.5">
+          <!-- Floor buttons 1 through 6 inserted by JS -->
+        </div>
+      </div>
+
+      <!-- List Stats & Filter Summary -->
+      <div class="px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-none text-xs">
+        <div>
+          <span id="roomCountLabel" class="font-bold text-slate-800 dark:text-white">0 Rooms</span>
+          <span id="activeFilterLabel" class="text-slate-500 dark:text-slate-400 ml-1">on Floor 1</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <label for="sortBySelect" class="text-slate-500 dark:text-slate-400">Sort:</label>
+          <select id="sortBySelect" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none dark:text-white">
+            <option value="code">Room Number</option>
+            <option value="name">Room Name</option>
+            <option value="category">Category</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Scrollable List of Rooms -->
+      <div id="directoryGrid" class="flex-1 overflow-y-auto p-4 space-y-2.5">
+        <!-- Room cards inserted dynamically -->
+      </div>
+    </section>
+
+    <!-- RIGHT SIDE: INTERACTIVE MAP VIEW CANVAS CONTAINER -->
+    <section id="mapPanel" class="w-full md:w-1/2 lg:w-7/12 flex-1 relative bg-slate-200 dark:bg-slate-950 overflow-hidden">
+      
+      <!-- Interactive SVG Campus Map Canvas -->
+      <div id="mapViewport" class="w-full h-full cursor-grab active:cursor-grabbing select-none relative overflow-hidden">
+        <svg id="campusSvg" viewBox="0 0 1200 800" class="w-full h-full transition-transform duration-100 ease-out origin-center">
+          <defs>
+            <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cbd5e1" stroke-width="0.5" stroke-opacity="0.4" class="dark:stroke-slate-800" />
+            </pattern>
+            <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+              <feDropShadow dx="2" dy="4" stdDeviation="4" flood-opacity="0.25" />
+            </filter>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          <!-- SVG BACKGROUND GRID -->
+          <rect width="1200" height="800" fill="url(#gridPattern)" />
+
+          <!-- BUILDING OUTER STRUCTURAL SHELL -->
+          <g id="structuralBase">
+            <rect x="80" y="60" width="1040" height="680" rx="16" fill="#ffffff" class="dark:fill-slate-900" stroke="#0a5c36" stroke-width="6" filter="url(#shadow)" />
+            <!-- Corridor Central Walkway -->
+            <rect x="120" y="360" width="960" height="80" rx="8" fill="#f8fafc" class="dark:fill-slate-800/80" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="8 8" />
+            <text x="600" y="405" fill="#94a3b8" font-size="14" font-weight="bold" letter-spacing="4" text-anchor="middle">CENTRAL CORRIDOR / HALLWAY</text>
+
+            <!-- Fixed Vertical Access Nodes (Elevators & Stairs) -->
+            <!-- Elevator Core Left -->
+            <g transform="translate(140, 370)">
+              <rect x="0" y="0" width="60" height="60" rx="6" fill="#0a5c36" />
+              <text x="30" y="36" fill="#f5ab16" font-size="20" font-weight="bold" text-anchor="middle"><i class="fa-solid fa-elevator"></i>ELEV A</text>
+            </g>
+            <!-- Elevator Core Right -->
+            <g transform="translate(1000, 370)">
+              <rect x="0" y="0" width="60" height="60" rx="6" fill="#0a5c36" />
+              <text x="30" y="36" fill="#f5ab16" font-size="20" font-weight="bold" text-anchor="middle">ELEV B</text>
+            </g>
+            <!-- Stairwell North -->
+            <g transform="translate(560, 80)">
+              <rect x="0" y="0" width="80" height="40" rx="6" fill="#334155" />
+              <text x="40" y="25" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">STAIRS 1</text>
+            </g>
+            <!-- Stairwell South -->
+            <g transform="translate(560, 680)">
+              <rect x="0" y="0" width="80" height="40" rx="6" fill="#334155" />
+              <text x="40" y="25" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">STAIRS 2</text>
+            </g>
+            <!-- Main Entrance Indicator (Floor 1 Only) -->
+            <g id="mainEntranceGraphic" transform="translate(600, 740)">
+              <polygon points="0,-15 -15,10 15,10" fill="#0a5c36" />
+              <text x="0" y="25" fill="#0a5c36" font-size="12" font-weight="extrabold" text-anchor="middle" class="dark:fill-gc-gold">MAIN ENTRANCE</text>
+            </g>
+          </g>
+
+          <!-- DYNAMIC SVG ROOMS LAYER -->
+          <g id="buildingShapesGroup">
+            <!-- Rooms rendered dynamically by app.js -->
+          </g>
+
+          <!-- DYNAMIC ROUTE PATH LAYER -->
+          <g id="routePathGroup">
+            <path id="activeRoutePath" d="" fill="none" stroke="#f5ab16" stroke-width="6" stroke-linecap="round" class="route-animated" filter="url(#glow)"/>
+          </g>
+
+          <!-- USER LOCATION GPS PIN -->
+          <g id="userLocationMarker" transform="translate(600, 400)">
+            <circle r="18" fill="#0a5c36" fill-opacity="0.3" class="marker-pulse" />
+            <circle r="8" fill="#0a5c36" stroke="#f5ab16" stroke-width="2.5" filter="url(#shadow)" />
+          </g>
+
+          <!-- DYNAMIC SVG ROOM LABELS LAYER -->
+          <g id="buildingPinsGroup">
+            <!-- Room tags rendered dynamically by app.js -->
+          </g>
+
+        </svg>
+      </div>
+
+      <!-- MAP FLOATING CONTROLS -->
+      <div class="absolute bottom-6 right-6 flex flex-col space-y-2 z-20">
+        <button id="zoomInBtn" class="w-10 h-10 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 font-bold transition">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <button id="zoomOutBtn" class="w-10 h-10 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 font-bold transition">
+          <i class="fa-solid fa-minus"></i>
+        </button>
+        <button id="resetViewBtn" title="Reset View" class="w-10 h-10 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+          <i class="fa-solid fa-compress"></i>
+        </button>
+      </div>
+
+      <!-- MAP LEGEND OVERLAY -->
+      <div class="absolute top-4 left-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-3 rounded-xl shadow-md border border-slate-200 dark:border-slate-800 text-xs hidden sm:block z-10 max-w-xs">
+        <div class="font-bold text-slate-800 dark:text-slate-200 mb-1.5 flex items-center justify-between">
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-map-pin text-gc-green dark:text-gc-gold"></i> Building Key</span>
+          <span id="currentFloorLegendBadge" class="text-[10px] bg-gc-green text-white dark:bg-gc-gold dark:text-slate-900 font-extrabold px-1.5 py-0.5 rounded">F1</span>
+        </div>
+        <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-600 dark:text-slate-300 text-[11px]">
+          <div class="flex items-center space-x-1.5">
+            <span class="w-3 h-3 rounded-sm bg-emerald-600 inline-block"></span>
+            <span>Classrooms</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-3 h-3 rounded-sm bg-amber-500 inline-block"></span>
+            <span>Labs</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-3 h-3 rounded-sm bg-sky-500 inline-block"></span>
+            <span>Offices</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-3 h-3 rounded-sm bg-purple-500 inline-block"></span>
+            <span>Services</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVE ROUTE CARD OVERLAY -->
+      <div id="routeSummaryBar" class="hidden absolute top-4 right-4 left-4 sm:left-auto sm:max-w-md bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-xl border border-gc-gold z-20">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gc-green text-gc-gold flex items-center justify-center font-bold text-lg">
+              <i class="fa-solid fa-person-walking"></i>
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <span id="routeTimeEst" class="font-bold text-slate-900 dark:text-white text-base">Direct Path</span>
+                <span id="routeFloorNotice" class="text-xs text-gc-green dark:text-gc-gold bg-gc-green/10 px-2 py-0.5 rounded-full font-bold">Floor Navigation</span>
+              </div>
+              <p id="routeEndpoints" class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">From Room 101 to Room 105</p>
+            </div>
+          </div>
+          <button id="clearRouteBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MOBILE BOTTOM NAVIGATION BAR -->
+  <nav class="md:hidden bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around py-2 z-30 flex-none">
+    <button id="mobNavMap" class="flex flex-col items-center text-xs text-gc-green dark:text-gc-gold font-medium">
+      <i class="fa-solid fa-map text-lg mb-0.5"></i>
+      <span>Blueprint</span>
+    </button>
+    <button id="mobNavList" class="flex flex-col items-center text-xs text-slate-500 dark:text-slate-400 font-medium">
+      <i class="fa-solid fa-list-ul text-lg mb-0.5"></i>
+      <span>Directory</span>
+    </button>
+    <button id="mobNavRoute" class="flex flex-col items-center text-xs text-slate-500 dark:text-slate-400 font-medium">
+      <i class="fa-solid fa-route text-lg mb-0.5"></i>
+      <span>Directions</span>
+    </button>
+  </nav>
+
+  <!-- ROOM DETAIL DRAWER -->
+  <div id="detailDrawer" class="fixed inset-y-0 right-0 w-full sm:w-96 max-w-full bg-white dark:bg-slate-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-l border-slate-200 dark:border-slate-800">
+    <!-- Header banner -->
+    <div class="relative h-36 bg-gc-green p-5 flex flex-col justify-end text-white flex-none">
+      <button id="closeDrawerBtn" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/30 text-white flex items-center justify-center hover:bg-black/50 transition backdrop-blur-sm">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex items-center justify-between">
+        <span id="drawerCategoryBadge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-gc-gold text-slate-900 shadow-sm">
+          Classroom
+        </span>
+        <span id="drawerFloorBadge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-white/20 text-white">
+          Floor 1
+        </span>
+      </div>
+    </div>
+
+    <!-- Drawer Content Scrollable Body -->
+    <div class="flex-1 overflow-y-auto p-5 space-y-5">
+      <div>
+        <h2 id="drawerTitle" class="text-2xl font-bold text-slate-900 dark:text-white leading-tight">Room 101</h2>
+        <p id="drawerCode" class="text-xs font-mono text-gc-green dark:text-gc-gold font-bold mt-1">CODE: R-101 • Gordon College</p>
+      </div>
+
+      <!-- Quick Action Bar -->
+      <div class="flex space-x-2">
+        <button id="drawerDirectionsBtn" class="flex-1 bg-gc-green hover:bg-gc-green-dark text-white py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 shadow-sm transition">
+          <i class="fa-solid fa-route text-gc-gold"></i>
+          <span>Directions Here</span>
+        </button>
+        <button id="drawerEditBtn" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-pen"></i>
+          <span>Customize</span>
+        </button>
+      </div>
+
+      <!-- Room Properties Card -->
+      <div class="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl space-y-2 border border-slate-200 dark:border-slate-800 text-xs">
+        <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
+          <span class="flex items-center space-x-2">
+            <i class="fa-regular fa-clock text-gc-green dark:text-gc-gold"></i>
+            <span class="font-medium">Hours:</span>
+          </span>
+          <span id="drawerHours" class="font-semibold text-slate-800 dark:text-slate-100">7:00 AM - 7:00 PM</span>
+        </div>
+        <div class="flex items-center justify-between text-slate-600 dark:text-slate-300">
+          <span class="flex items-center space-x-2">
+            <i class="fa-solid fa-users text-gc-green dark:text-gc-gold"></i>
+            <span class="font-medium">Capacity:</span>
+          </span>
+          <span id="drawerCapacity" class="font-medium text-slate-800 dark:text-slate-100">40 Students</span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">Description</h3>
+        <p id="drawerDescription" class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+          Standard lecture classroom equipped with digital projector and whiteboard.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- WAYFINDING ROUTE PLANNER MODAL -->
+  <div id="wayfinderModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative">
+      
+      <button id="closeWayfinderBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-gc-green text-gc-gold flex items-center justify-center font-bold text-lg">
+          <i class="fa-solid fa-route"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Inter-Floor Directions</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Navigate between any rooms across 6 floors</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-600 dark:text-slate-300 mb-1">Starting Location</label>
+          <select id="routeStartSelect" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 font-medium text-slate-800 dark:text-white focus:ring-2 focus:ring-gc-green outline-none">
+            <!-- Dynamically populated options -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-600 dark:text-slate-300 mb-1">Destination Room</label>
+          <select id="routeEndSelect" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 font-medium text-slate-800 dark:text-white focus:ring-2 focus:ring-gc-green outline-none">
+            <!-- Dynamically populated options -->
+          </select>
+        </div>
+
+        <div class="pt-2 flex space-x-3">
+          <button id="calculateRouteBtn" class="flex-1 bg-gc-green hover:bg-gc-green-dark text-white font-semibold py-3 rounded-xl flex items-center justify-center space-x-2 shadow-md transition">
+            <i class="fa-solid fa-location-arrow text-gc-gold"></i>
+            <span>Calculate Route</span>
+          </button>
+          <button id="cancelRouteBtn" class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 py-3 rounded-xl font-semibold hover:bg-slate-200 dark:hover:bg-slate-700">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EDIT / ADD ROOM CUSTOMIZATION MODAL -->
+  <div id="roomEditModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative max-h-[90vh] overflow-y-auto">
+      
+      <button id="closeRoomEditModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-gc-green text-gc-gold flex items-center justify-center font-bold text-lg">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </div>
+        <div>
+          <h3 id="editModalHeaderTitle" class="text-lg font-bold text-slate-900 dark:text-white">Customize Room</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Configure geometry, attributes, and floor level</p>
+        </div>
+      </div>
+
+      <form id="roomEditForm" class="space-y-3.5 text-xs">
+        <input type="hidden" id="editRoomId">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Room Code / Number</label>
+            <input type="text" id="editRoomCode" required placeholder="e.g. 101" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-900 dark:text-white">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Floor Level</label>
+            <select id="editRoomFloor" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-900 dark:text-white">
+              <option value="1">Floor 1</option>
+              <option value="2">Floor 2</option>
+              <option value="3">Floor 3</option>
+              <option value="4">Floor 4</option>
+              <option value="5">Floor 5</option>
+              <option value="6">Floor 6</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Room Title / Name</label>
+          <input type="text" id="editRoomName" required placeholder="e.g. Computer Studies Lab 1" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-900 dark:text-white">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Category</label>
+            <select id="editRoomCategory" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-900 dark:text-white">
+              <option value="Classroom">Classroom</option>
+              <option value="Laboratory">Laboratory</option>
+              <option value="Office">Office</option>
+              <option value="Student Services">Student Services</option>
+              <option value="Facility">Facility</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Color Theme</label>
+            <input type="color" id="editRoomColor" value="#0a5c36" class="w-full h-9 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-1 cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Coordinates & Geometry -->
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+          <span class="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px]">SVG Map Coordinates (X, Y, W, H)</span>
+          <div class="grid grid-cols-4 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-500">X Position</label>
+              <input type="number" id="editRoomX" min="80" max="1100" class="w-full bg-white dark:bg-slate-900 border rounded p-1">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Y Position</label>
+              <input type="number" id="editRoomY" min="60" max="700" class="w-full bg-white dark:bg-slate-900 border rounded p-1">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Width</label>
+              <input type="number" id="editRoomW" min="40" max="400" class="w-full bg-white dark:bg-slate-900 border rounded p-1">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Height</label>
+              <input type="number" id="editRoomH" min="40" max="300" class="w-full bg-white dark:bg-slate-900 border rounded p-1">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Description / Notes</label>
+          <textarea id="editRoomDesc" rows="2" placeholder="Notes about room contents, equipment, or usage..." class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-900 dark:text-white"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-between gap-3">
+          <button type="button" id="deleteRoomBtn" class="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl transition">
+            Delete Room
+          </button>
+          <div class="flex items-center space-x-2">
+            <button type="button" id="cancelEditRoomBtn" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold rounded-xl">
+              Cancel
+            </button>
+            <button type="submit" class="px-5 py-2 bg-gc-green hover:bg-gc-green-dark text-white font-semibold rounded-xl shadow-md transition">
+              Save Room
+            </button>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- JSON SCHEMA IMPORT/EXPORT MODAL -->
+  <div id="jsonSchemaModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative">
+      
+      <button id="closeJsonModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-gc-green text-gc-gold flex items-center justify-center font-bold text-lg">
+          <i class="fa-solid fa-code"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Export / Import Layout JSON</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Backup your campus floor layout structure</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <textarea id="jsonArea" rows="10" class="w-full bg-slate-900 text-gc-gold font-mono p-3 rounded-xl text-[11px] focus:outline-none border border-slate-800"></textarea>
+        
+        <div class="flex items-center justify-between">
+          <div class="flex space-x-2">
+            <button id="copyJsonBtn" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl">
+              <i class="fa-regular fa-copy"></i> Copy JSON
+            </button>
+            <button id="downloadJsonBtn" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl">
+              <i class="fa-solid fa-download"></i> Save File
+            </button>
+          </div>
+          <button id="applyJsonBtn" class="px-4 py-2 bg-gc-green hover:bg-gc-green-dark text-white font-semibold rounded-xl shadow-md">
+            Apply Import
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- External App JS -->
+  <script src="app.js" defer></script>
+</body>
+</html>
